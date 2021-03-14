@@ -47,6 +47,8 @@ import ng.com.obkm.exquisitor.DataAccess.VectorLab;
 
 import static ng.com.obkm.exquisitor.DataAccess.NegativeImageLab.resetNegList;
 import static ng.com.obkm.exquisitor.DataAccess.PositiveImageLab.resetList;
+import static ng.com.obkm.exquisitor.Utilities.Converter.getFullPath;
+import static ng.com.obkm.exquisitor.Utilities.Converter.getShortPath;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -110,7 +112,8 @@ public class HomeFragment extends Fragment {
         super.onStart();
 
         if (numberOfFeedback < 1) {
-            mImagesOnScreenList = getRandomSixList();
+            //mImagesOnScreenList = getRandomSixList();
+            mImagesOnScreenList = makeStartScreenListForTesting();
         }
         if (!mImagesOnScreenListSaved.isEmpty()) {
             mImagesOnScreenList = mImagesOnScreenListSaved;
@@ -125,6 +128,41 @@ public class HomeFragment extends Fragment {
     public void onPause() {
         super.onPause();
         mImagesOnScreenListSaved = mImagesOnScreenList;
+    }
+
+    // method to return always same 6 images on screen
+    private List<String> makeStartScreenListForTesting()
+    {
+        Log.i("lifecycle", "makeStartScreenListForTesting: called ");
+        List<String> testScreenList = new ArrayList<>();
+        testScreenList.add(getFullPath("118501.jpg")); // starting picture
+        addToSeenImagesFromLongPath(getFullPath("118501.jpg"));
+        testScreenList.add(getFullPath("102000.jpg"));
+        addToSeenImagesFromLongPath(getFullPath("102000.jpg"));
+        testScreenList.add(getFullPath("121404.jpg"));
+        addToSeenImagesFromLongPath(getFullPath("121404.jpg"));
+        testScreenList.add(getFullPath("124001.jpg"));
+        addToSeenImagesFromLongPath(getFullPath("124001.jpg"));
+        testScreenList.add(getFullPath("141703.jpg"));
+        addToSeenImagesFromLongPath(getFullPath("141703.jpg"));
+        testScreenList.add(getFullPath("100100.jpg"));
+        addToSeenImagesFromLongPath(getFullPath("100100.jpg"));
+
+        for(int i = 0; i < testScreenList.size(); i++){
+            Log.i("lifecycle", "added to start test screen images " + testScreenList.get(i));
+        }
+        //searchStart = false;
+        return testScreenList;
+    }
+
+    private void addToSeenImagesFromLongPath(String longPath){
+        //add to db as seen
+        Log.i("here", "added to seen images: " + longPath);
+        String shortPath = getShortPath(longPath);
+        //Log.i(TAG, "path to update image short: " + shortPath);
+        int imageID = VectorLab.getIDFromPath(shortPath);
+        //Log.i(TAG, "path to update image short: " + imageID);
+        vectorLab.updateSeen(imageID);
     }
 
 
@@ -166,7 +204,7 @@ public class HomeFragment extends Fragment {
         String path = PhotoPagerActivity.getVectorPath(data);
 
         // path transformation
-        path = Converter.getShortPath(path);
+        path = getShortPath(path);
 
         int imageID = VectorLab.getIDFromPath(path);
 
@@ -342,7 +380,7 @@ public class HomeFragment extends Fragment {
      */
     private void setImagesOnScreenList(Intent data) {
         String path = PhotoPagerActivity.getVectorPath(data); // path received from intent
-        path = Converter.getFullPath(path);
+        path = getFullPath(path);
 
         int index = -1;
 
@@ -363,7 +401,7 @@ public class HomeFragment extends Fragment {
             svm_model model = SVMBuild.buildModel(ratings, trainingDataValues, trainingDataLabels);
             String bestPath = getOneBestCandidateDistanceBased(model);
 
-            String fullPathToAdd = Converter.getFullPath(bestPath);
+            String fullPathToAdd = getFullPath(bestPath);
             mImagesOnScreenListSaved.add(index, fullPathToAdd);
             updateSeenInDB(fullPathToAdd);
         }
@@ -374,7 +412,7 @@ public class HomeFragment extends Fragment {
      * @param longPath full image path
      */
     private void updateSeenInDB(String longPath){
-        String shortPath = Converter.getShortPath(longPath);
+        String shortPath = getShortPath(longPath);
         int imageID = VectorLab.getIDFromPath(shortPath);
         vectorLab.updateSeen(imageID);
     }
@@ -394,7 +432,7 @@ public class HomeFragment extends Fragment {
 
                 // Update each image on the screen
                 String pathFromList = imagesList.get(i);
-                final String path = Converter.getFullPath(pathFromList);
+                final String path = getFullPath(pathFromList);
                 updateImageView(path, myImage);
 
                 myImage.setOnClickListener(new View.OnClickListener() {
@@ -422,7 +460,7 @@ public class HomeFragment extends Fragment {
         if (!imgFile.exists()) {
             Drawable noImageDrawable = getResources().getDrawable(R.drawable.no_photo_small);
             myImage.setImageDrawable(noImageDrawable);
-            vectorLab.deleteEntryFromDB(Converter.getShortPath(path));
+            vectorLab.deleteEntryFromDB(getShortPath(path));
         } else {
             Bitmap myBitmap = PictureUtils.getThunbnail(imgFile.getPath());
             myImage.setImageBitmap(myBitmap);
@@ -446,7 +484,7 @@ public class HomeFragment extends Fragment {
                     mImagesOnScreenList.clear();
                     for (int index = 0; index < 6; index++) {
                         String pathToAdd = bestPaths.get(index);
-                        String fullPathToAdd = Converter.getFullPath(pathToAdd);
+                        String fullPathToAdd = getFullPath(pathToAdd);
                         Log.i("bestCandidate", "PathToAdd: " + fullPathToAdd);
                         //Log.i(TAG, "mImagesOnScreenList size " + mImagesOnScreenList.size());
                         if (!mImagesOnScreenList.contains(fullPathToAdd)) {
@@ -486,7 +524,7 @@ public class HomeFragment extends Fragment {
      */
     private String getRandomImageFromDB() {
         int randomID = vectorLab.queryRandomUnseen();
-        return Converter.getFullPath(vectorLab.getPathFromID(randomID));
+        return getFullPath(vectorLab.getPathFromID(randomID));
     }
 
     // SOURCE: https://stackoverflow.com/questions/28163279/sort-map-by-value-in-java
